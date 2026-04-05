@@ -557,20 +557,21 @@ function splashStart(){
   const s=document.getElementById('splash');
   if(s){s.style.opacity='0';setTimeout(()=>s.style.display='none',600);}
   
-  // GPS iste - popup çıkmazsa yönlendirme göster
+  // Median.co APK içindeyse özel konum başlatma
+  if(window.median_geolocation_ready){
+    window.median_geolocation_ready=function(){
+      _startWatch();
+    };
+  }
+  
+  // GPS iste
   navigator.geolocation.getCurrentPosition(
     (pos)=>{onPos(pos);_startWatch();},
-    (err)=>{
-      // Popup çıkmadı veya reddedildi - yönlendirme göster
-      showLocationGuide();
-    },
+    (err)=>{setTimeout(()=>{if(userLat===null)showLocationGuide();},1000);},
     {enableHighAccuracy:true,timeout:5000,maximumAge:0}
   );
   
-  // 3 saniye içinde konum gelmezse yönlendirme göster
-  setTimeout(()=>{
-    if(userLat===null){showLocationGuide();}
-  },3000);
+  setTimeout(()=>{if(userLat===null){showLocationGuide();}},4000);
 }
 
 function showLocationGuide(){
