@@ -554,8 +554,37 @@ function applyCameraMode(){
 
 // ============ GPS ============
 function startGPS(){
-  if(!navigator.geolocation){showToast('GPS desteklenmiyor');return;}
-  watchId=navigator.geolocation.watchPosition(onPos,onPosErr,{enableHighAccuracy:true,maximumAge:500,timeout:10000});
+  if(!navigator.geolocation){
+    showToast('Bu cihaz GPS desteklemiyor');
+    return;
+  }
+  // Önce izin durumunu kontrol et
+  if(navigator.permissions){
+    navigator.permissions.query({name:'geolocation'}).then(result=>{
+      if(result.state==='denied'){
+        showToast('Konum izni reddedildi. Tarayıcı ayarlarından izin verin.');
+        return;
+      }
+      _startWatch();
+    }).catch(()=>_startWatch());
+  }else{
+    _startWatch();
+  }
+}
+
+function _startWatch(){
+  // İlk konum için hemen sor (izin dialogu açılır)
+  navigator.geolocation.getCurrentPosition(
+    onPos,
+    onPosErr,
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+  );
+  // Sonra sürekli takip
+  watchId=navigator.geolocation.watchPosition(
+    onPos,
+    onPosErr,
+    {enableHighAccuracy:true,maximumAge:500,timeout:10000}
+  );
 }
 
 function onPosErr(e){
@@ -1036,25 +1065,27 @@ function addRadarMarkers(){
 }
 
 async function fetchOSMRadars(){
-  // Türkiye 6 bölge - sırayla çek
-  const regions=[[36,26,39,32],[36,32,39,38],[36,38,39,45],[39,26,42,32],[39,32,42,38],[39,38,42,45]];
-  for(const [s,w,n,e] of regions){
-    try{
-      const q=`[out:json][timeout:30];(node["highway"="speed_camera"](${s},${w},${n},${e});node["enforcement"="maxspeed"](${s},${w},${n},${e});node["device"="speed_camera"](${s},${w},${n},${e}););out;`;
-      const d=await overpassQuery(q);
-      (d.elements||[]).forEach(e=>{
-        const isDup=radarMarkers.some(m=>{const ll=m.getLngLat();return Math.abs(ll.lat-e.lat)<0.0005&&Math.abs(ll.lng-e.lon)<0.0005;});
-        if(isDup)return;
-        const el2=document.createElement('div');el2.innerHTML=radarSVG();el2.style.cursor='pointer';
-        const limit=(e.tags&&(e.tags.maxspeed||e.tags['maxspeed:advisory']))||'?';
-        const m=new maplibregl.Marker({element:el2,anchor:'center'})
-          .setLngLat([e.lon,e.lat])
-          .setPopup(new maplibregl.Popup({offset:22}).setHTML(`<b>Radar</b><br>Limit: ${limit} km/h`))
-          .addTo(map);
-        radarMarkers.push(m);
-      });
-    }catch(e){}
-    await new Promise(res=>setTimeout(res,400));
+  // Tüm Türkiye tek sorguda çek - daha hızlı
+  try{
+    const q=`[out:json][timeout:60];(node["highway"="speed_camera"](36,26,42,45);node["enforcement"="maxspeed"](36,26,42,45);node["device"="speed_camera"](36,26,42,45);node["highway"="speed_camera:conditional"](36,26,42,45););out;`;
+    const d=await overpassQuery(q);
+    let added=0;
+    (d.elements||[]).forEach(e=>{
+      if(!e.lat||!e.lon)return;
+      const isDup=radarMarkers.some(m=>{const ll=m.getLngLat();return Math.abs(ll.lat-e.lat)<0.001&&Math.abs(ll.lng-e.lon)<0.001;});
+      if(isDup)return;
+      const el2=document.createElement('div');el2.innerHTML=radarSVG();el2.style.cursor='pointer';
+      const limit=(e.tags&&(e.tags.maxspeed||e.tags['maxspeed:advisory']||e.tags['maxspeed:forward']))||'?';
+      const m=new maplibregl.Marker({element:el2,anchor:'center'})
+        .setLngLat([e.lon,e.lat])
+        .setPopup(new maplibregl.Popup({offset:22}).setHTML(`<b>Radar (OSM)</b><br>Limit: ${limit} km/h`))
+        .addTo(map);
+      radarMarkers.push(m);
+      added++;
+    });
+    if(added>0)console.log(`OSM'den ${added} radar eklendi`);
+  }catch(e){
+    console.warn('OSM radar yüklenemedi, sadece örnek veriler gösteriliyor');
   }
 }
 

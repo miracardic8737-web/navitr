@@ -69,11 +69,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow
 .sr-item{padding:11px 14px;font-size:13px;color:#333;cursor:pointer;border-bottom:1px solid #f0f0f0;}
 .sr-item:hover,.sr-item:active{background:#e3f2fd;}
 
-/* HIZ */
+/* HIZ - route-bar yokken alt, varken üst */
 #spd-panel{position:fixed;bottom:90px;left:10px;z-index:100;display:flex;flex-direction:column;align-items:center;pointer-events:none;}
+body:has(#route-bar:not(.hidden)) #spd-panel{bottom:80px;}
 #spd-canvas{filter:drop-shadow(0 0 8px rgba(79,195,247,0.4));}
 #spd-num{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:22px;font-weight:800;color:#fff;}
 #spd-lbl{font-size:9px;color:#666;margin-top:-2px;}
+
+/* Attribution gizle */
+.maplibregl-ctrl-attrib,.maplibregl-ctrl-attrib-button,.maplibregl-ctrl-bottom-right{display:none!important;}
 
 /* UYARILAR */
 .alert-box{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(229,57,53,0.95);color:#fff;padding:14px 22px;border-radius:16px;text-align:center;z-index:500;box-shadow:0 0 40px rgba(229,57,53,0.6);animation:ap .4s infinite alternate;display:flex;flex-direction:column;align-items:center;gap:4px;}
