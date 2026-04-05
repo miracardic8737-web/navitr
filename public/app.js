@@ -562,20 +562,27 @@ function startGPS(){
 }
 
 function _startWatch(){
-  // Direkt sor - tarayıcı izin dialogunu otomatik açar
   navigator.geolocation.getCurrentPosition(
     onPos,
     (err)=>{
       if(err.code===1){
-        // İzin reddedildi - kullanıcıya bilgi ver
-        showToast('Konum izni gerekli. Adres çubuğundaki kilit ikonuna tıklayın.');
+        // İzin reddedildi - net yönlendirme
+        const msg=document.createElement('div');
+        msg.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a2e;color:#fff;padding:20px 24px;border-radius:16px;z-index:9999;text-align:center;border:1px solid #4fc3f7;max-width:280px;font-size:14px;line-height:1.6;box-shadow:0 8px 32px rgba(0,0,0,0.6)';
+        msg.innerHTML=`<div style="font-size:32px;margin-bottom:10px">📍</div>
+          <div style="font-weight:700;font-size:16px;margin-bottom:8px">Konum İzni Gerekli</div>
+          <div style="color:#aaa;font-size:13px;margin-bottom:16px">Navigasyon için konum iznine ihtiyaç var.</div>
+          <div style="background:rgba(79,195,247,0.1);border:1px solid #4fc3f7;border-radius:10px;padding:10px;font-size:12px;color:#4fc3f7;margin-bottom:14px">
+            Adres çubuğundaki <b>🔒 kilit</b> veya <b>ⓘ</b> ikonuna tıkla → <b>Konum → İzin Ver</b>
+          </div>
+          <button onclick="this.parentNode.remove();startGPS()" style="background:#4fc3f7;color:#000;border:none;padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer;width:100%">Tekrar Dene</button>`;
+        document.body.appendChild(msg);
       }else{
         onPosErr(err);
       }
     },
     {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
-  // Sürekli takip
   if(watchId)navigator.geolocation.clearWatch(watchId);
   watchId=navigator.geolocation.watchPosition(
     onPos,
