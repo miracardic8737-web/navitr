@@ -554,10 +554,44 @@ function applyCameraMode(){
 
 // ============ GPS ============
 function splashStart(){
-  // Kullanıcı tıkladı - izin popup'ı açılabilir
   const s=document.getElementById('splash');
   if(s){s.style.opacity='0';setTimeout(()=>s.style.display='none',600);}
-  startGPS();
+  
+  // GPS iste - popup çıkmazsa yönlendirme göster
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{onPos(pos);_startWatch();},
+    (err)=>{
+      // Popup çıkmadı veya reddedildi - yönlendirme göster
+      showLocationGuide();
+    },
+    {enableHighAccuracy:true,timeout:5000,maximumAge:0}
+  );
+  
+  // 3 saniye içinde konum gelmezse yönlendirme göster
+  setTimeout(()=>{
+    if(userLat===null){showLocationGuide();}
+  },3000);
+}
+
+function showLocationGuide(){
+  if(document.getElementById('loc-guide'))return;
+  const div=document.createElement('div');
+  div.id='loc-guide';
+  div.style.cssText='position:fixed;inset:0;background:rgba(10,10,20,0.97);z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;';
+  div.innerHTML=`
+    <div style="font-size:48px;margin-bottom:16px">🔒</div>
+    <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:8px">Konum İzni Ver</div>
+    <div style="font-size:14px;color:#aaa;margin-bottom:24px;text-align:center">Navigasyon için konum iznine ihtiyaç var</div>
+    <div style="background:rgba(79,195,247,0.1);border:1px solid rgba(79,195,247,0.3);border-radius:16px;padding:18px 20px;max-width:320px;width:100%;font-size:13px;color:#fff;line-height:2;margin-bottom:24px">
+      <div style="color:#4fc3f7;font-weight:700;margin-bottom:8px">Chrome'da:</div>
+      <div>1️⃣ Adres çubuğundaki <b style="color:#4fc3f7">🔒 kilit</b> ikonuna bas</div>
+      <div>2️⃣ <b style="color:#4fc3f7">İzinler</b> veya <b style="color:#4fc3f7">Site ayarları</b> seç</div>
+      <div>3️⃣ <b style="color:#4fc3f7">Konum → İzin ver</b> seç</div>
+      <div>4️⃣ Aşağıdaki butona bas</div>
+    </div>
+    <button onclick="document.getElementById('loc-guide').remove();splashStart()" style="background:linear-gradient(135deg,#4fc3f7,#0277bd);color:#fff;border:none;padding:16px 48px;border-radius:28px;font-size:18px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(79,195,247,0.5);width:100%;max-width:280px">Tekrar Dene</button>
+  `;
+  document.body.appendChild(div);
 }
 
 function startGPS(){
