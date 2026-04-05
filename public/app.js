@@ -856,6 +856,28 @@ function drawRouteLines(routes,selIdx){
   map.fitBounds(bounds,{padding:{top:80,bottom:120,left:60,right:80},duration:600});
 }
 
+// ============ WAKE LOCK - ekranı uyanık tut ============
+let wakeLock=null;
+
+async function requestWakeLock(){
+  if(!('wakeLock' in navigator))return;
+  try{
+    wakeLock=await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release',()=>{wakeLock=null;});
+  }catch(e){}
+}
+
+function releaseWakeLock(){
+  if(wakeLock){wakeLock.release();wakeLock=null;}
+}
+
+// Sayfa görünür olunca wake lock'u yenile
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&navActive){
+    requestWakeLock();
+  }
+});
+
 // ============ NAVIGATION ============
 function beginNavigation(route){
   routeSteps=route.legs[0].steps;
@@ -866,6 +888,7 @@ function beginNavigation(route){
   updateRouteBar(route);
   clearAudioQueue();
   playAudio('rota_basladi');
+  requestWakeLock(); // Ekranı uyanık tut
   cameraMode='follow';
   if(userLat)map.easeTo({center:[userLon,userLat],pitch:60,bearing:userBearing,zoom:18,duration:800});
 }
@@ -970,6 +993,7 @@ function updateRouteBar(route){
 function cancelRoute(){
   navActive=false;driveMode=false;routeSteps=[];stepIdx=0;
   altRoutes=[];destCoords=null;
+  releaseWakeLock(); // Ekran kilidini bırak
   for(let i=0;i<4;i++){
     if(map.getLayer('route-shadow-'+i))map.removeLayer('route-shadow-'+i);
     if(map.getLayer('route-'+i))map.removeLayer('route-'+i);
