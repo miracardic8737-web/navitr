@@ -41,11 +41,18 @@ app.post('/api/overpass', (req, res) => {
   proxyReq.end();
 });
 
-// Nominatim proxy
+// Nominatim proxy - tüm parametreleri geçir
 app.get('/api/search', (req, res) => {
-  const q = req.query.q;
-  if (!q) return res.status(400).json({ error: 'q gerekli' });
-  const path = `/search?q=${encodeURIComponent(q)}&format=json&countrycodes=tr&limit=6&addressdetails=1&accept-language=tr`;
+  const params = new URLSearchParams(req.query);
+  if (!params.get('format')) params.set('format', 'json');
+  if (!params.get('countrycodes')) params.set('countrycodes', 'tr');
+  if (!params.get('limit')) params.set('limit', '8');
+  params.set('addressdetails', '1');
+  params.set('extratags', '1');
+  params.set('namedetails', '1');
+  params.set('accept-language', 'tr');
+
+  const path = `/search?${params.toString()}`;
   const options = {
     hostname: 'nominatim.openstreetmap.org',
     path,

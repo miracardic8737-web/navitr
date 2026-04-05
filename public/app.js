@@ -824,29 +824,90 @@ async function overpassQuery(q){
 }
 
 async function nominatimSearch(q){
+  // Türkiye odaklı, adres + POI + bina no hepsini ara
+  const params=new URLSearchParams({
+    q,
+    format:'json',
+    countrycodes:'tr',
+    limit:'8',
+    addressdetails:'1',
+    extratags:'1',
+    namedetails:'1',
+    'accept-language':'tr'
+  });
   try{
-    const r=await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-    if(!r.ok)throw new Error('proxy '+r.status);
+    const r=await fetch(`/api/search?${params}`);
+    if(!r.ok)throw new Error();
     return await r.json();
   }catch(e){
-    const r2=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&countrycodes=tr&limit=6&addressdetails=1`,{headers:{'Accept-Language':'tr'}});
+    const r2=await fetch(`https://nominatim.openstreetmap.org/search?${params}`,{headers:{'Accept-Language':'tr'}});
     return await r2.json();
   }
 }
+
+// Sonuç tipine göre ikon
+function getSearchIcon(type,cls){
+  const icons={
+    shop:'🛒', supermarket:'🛒', convenience:'🛒', bakery:'🥖', butcher:'🥩',
+    restaurant:'🍽', cafe:'☕', fast_food:'🍔', bar:'🍺',
+    hospital:'🏥', clinic:'🏥', pharmacy:'💊', doctors:'👨‍⚕️',
+    school:'🏫', university:'🎓', college:'🎓',
+    bank:'🏦', atm:'🏧',
+    fuel:'⛽', parking:'🅿',
+    mosque:'🕌', church:'⛪',
+    hotel:'🏨', hostel:'🏨',
+    police:'👮', fire_station:'🚒', post_office:'📮',
+    townhall:'🏛', courthouse:'⚖️',
+    park:'🌳', forest:'🌲',
+    house:'🏠', residential:'🏘', building:'🏢',
+    road:'🛣', street:'🛤',
+    village:'🏘', town:'🏙', city:'🌆',
+    district:'📍', neighbourhood:'📍', suburb:'📍',
+    amenity:'📍', place:'📍'
+  };
+  return icons[type]||icons[cls]||'📍';
+}
+
 async function searchPlace(){
   const q=document.getElementById('search-input').value.trim();
   if(!q)return;
   const el=document.getElementById('search-results');
-  el.innerHTML='<div class="sr-item" style="color:#888">Aranıyor...</div>';
+  el.innerHTML='<div class="sr-item" style="color:#888;padding:12px">Aranıyor...</div>';
   el.style.display='block';
   try{
     const data=await nominatimSearch(q);
-    if(!data.length){el.innerHTML='<div class="sr-item">Sonuç bulunamadı</div>';return;}
-    el.innerHTML=data.map(d=>`<div class="sr-item" onclick="pickSearch(${d.lat},${d.lon},'${(d.display_name||'').replace(/'/g,"\\'").substring(0,80)}')">
-      <div style="font-weight:600;font-size:13px;color:#222">${(d.display_name||'').split(',')[0]}</div>
-      <div style="font-size:11px;color:#888">${(d.display_name||'').split(',').slice(1,3).join(',')}</div>
-    </div>`).join('');
-  }catch(e){el.innerHTML='<div class="sr-item" style="color:#f44">Arama başarısız</div>';}
+    if(!data||!data.length){
+      el.innerHTML='<div class="sr-item" style="color:#888;padding:12px">Sonuç bulunamadı</div>';
+      return;
+    }
+    el.innerHTML=data.map(d=>{
+      const addr=d.address||{};
+      // Ana isim
+      const name=d.namedetails&&d.namedetails.name||d.display_name.split(',')[0];
+      // Adres detayı - sokak, mahalle, ilçe
+      const parts=[];
+      if(addr.road||addr.pedestrian||addr.footway)parts.push(addr.road||addr.pedestrian||addr.footway);
+      if(addr.house_number)parts[parts.length-1]=(parts[parts.length-1]||'')+' No:'+addr.house_number;
+      if(addr.suburb||addr.neighbourhood||addr.quarter)parts.push(addr.suburb||addr.neighbourhood||addr.quarter);
+      if(addr.town||addr.city||addr.village)parts.push(addr.town||addr.city||addr.village);
+      if(addr.county||addr.state_district)parts.push(addr.county||addr.state_district);
+      const addrStr=parts.join(', ')||d.display_name.split(',').slice(1,4).join(',');
+      // İkon
+      const icon=getSearchIcon(d.type,d.class);
+      const safe=name.replace(/'/g,"\\'");
+      return`<div class="sr-item" onclick="pickSearch(${d.lat},${d.lon},'${safe}')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:20px;min-width:24px;text-align:center">${icon}</div>
+          <div style="flex:1;overflow:hidden">
+            <div style="font-weight:600;font-size:13px;color:#222;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+            <div style="font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${addrStr}</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div class="sr-item" style="color:#888;padding:12px">Arama başarısız</div>';
+  }
 }
 
 function pickSearch(lat,lon,name){
