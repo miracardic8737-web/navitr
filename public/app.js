@@ -453,8 +453,8 @@ function initMap(){
   map.on('touchend',()=>clearTimeout(longTimer));
   map.on('touchmove',()=>clearTimeout(longTimer));
 
-  // Splash 2.5 saniye sonra kaldır
-  setTimeout(()=>{const s=document.getElementById('splash');if(s){s.style.opacity='0';setTimeout(()=>s.style.display='none',600);}},2500);
+  // Splash - butona basınca kapanacak, otomatik kapanmayacak
+  // splashStart() fonksiyonu halleder
 }
 
 function add3D(){
@@ -553,6 +553,13 @@ function applyCameraMode(){
 }
 
 // ============ GPS ============
+function splashStart(){
+  // Kullanıcı tıkladı - izin popup'ı açılabilir
+  const s=document.getElementById('splash');
+  if(s){s.style.opacity='0';setTimeout(()=>s.style.display='none',600);}
+  startGPS();
+}
+
 function startGPS(){
   if(!navigator.geolocation){
     showToast('Bu cihaz GPS desteklemiyor');
@@ -1529,12 +1536,11 @@ function togglePOILayer(){}
 // ============ INIT ============
 // ============ INIT ============
 function _init(){
-  // Service Worker kaydet (offline mod)
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js').catch(()=>{});
   }
   initMap();
-  startGPS();
+  // startGPS() artık splash "Başla" butonuyla çalışıyor
   const si=document.getElementById('search-input');
   if(si)si.addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace();});
   document.addEventListener('click',e=>{
