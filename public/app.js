@@ -568,6 +568,40 @@ function startGPS(){
   _startWatch();
 }
 
+function requestLocationPermission(){
+  const status=document.getElementById('gps-status');
+  if(status)status.textContent='İzin isteniyor...';
+  if(!navigator.geolocation){
+    if(status)status.textContent='GPS desteklenmiyor';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos)=>{
+      if(status)status.textContent='✓ Konum izni verildi';
+      onPos(pos);
+      _startWatch();
+    },
+    (err)=>{
+      if(err.code===1){
+        if(status)status.textContent='İzin reddedildi';
+        // Android için ayarlar sayfasına yönlendir
+        const msg=document.createElement('div');
+        msg.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a2e;color:#fff;padding:20px 24px;border-radius:16px;z-index:9999;text-align:center;border:1px solid #4fc3f7;max-width:290px;font-size:13px;line-height:1.7;box-shadow:0 8px 32px rgba(0,0,0,0.7)';
+        msg.innerHTML=`<div style="font-size:36px;margin-bottom:10px">📍</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:10px">Konum İzni Gerekli</div>
+          <div style="color:#aaa;margin-bottom:14px">Android: <b>Ayarlar → Uygulamalar → Chrome → İzinler → Konum → İzin Ver</b></div>
+          <div style="color:#aaa;margin-bottom:14px">iPhone: <b>Ayarlar → Safari → Konum → İzin Ver</b></div>
+          <button onclick="this.parentNode.remove();requestLocationPermission()" style="background:#4fc3f7;color:#000;border:none;padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer;width:100%;margin-bottom:8px">Tekrar Dene</button>
+          <button onclick="this.parentNode.remove()" style="background:transparent;color:#888;border:1px solid #333;padding:8px 20px;border-radius:10px;cursor:pointer;width:100%">Kapat</button>`;
+        document.body.appendChild(msg);
+      }else{
+        if(status)status.textContent='GPS sinyali yok, tekrar dene';
+      }
+    },
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+  );
+}
+
 function _startWatch(){
   navigator.geolocation.getCurrentPosition(
     onPos,

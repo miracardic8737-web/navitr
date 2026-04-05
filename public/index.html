@@ -196,6 +196,9 @@
   <label class="p-row"><input type="checkbox" id="set-radar" checked onchange="settings.radar=this.checked"> Radar Uyarısı</label>
   <label class="p-row"><input type="checkbox" id="set-police" checked onchange="settings.police=this.checked"> Polis Uyarısı</label>
   <label class="p-row"><input type="checkbox" id="set-night" onchange="toggleNightMode(this.checked)"> Gece Modu (Otomatik)</label>
+  <div class="p-section">Konum</div>
+  <button class="p-btn" onclick="requestLocationPermission()" style="background:rgba(79,195,247,0.2);border:1px solid #4fc3f7;color:#4fc3f7">Konum İznini Aç</button>
+  <div id="gps-status" style="font-size:11px;color:#888;margin-top:4px;text-align:center">--</div>
   <div class="p-section">Avatar</div>
   <div id="avatar-grid" style="display:flex;gap:10px;margin-bottom:8px">
     <div class="av selected" data-v="triangle" onclick="selectAvatar(this)" title="Üçgen" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border-radius:10px;border:2px solid #4fc3f7;background:rgba(79,195,247,0.12);cursor:pointer">
