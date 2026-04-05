@@ -209,3 +209,5 @@ a[href*="openmaptiles"]{display:none!important;visibility:hidden!important;opaci
   #fabs{right:4px;}
   .panel{right:46px;width:200px;}
 }
+
+@keyframes pulse{0%,100%{box-shadow:0 6px 28px rgba(79,195,247,0.6)}50%{box-shadow:0 6px 40px rgba(79,195,247,0.95),0 0 0 8px rgba(79,195,247,0.15)}}
