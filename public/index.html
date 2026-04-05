@@ -1,0 +1,274 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<meta name="theme-color" content="#4fc3f7"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Navitr</title>
+<link rel="manifest" href="manifest.json"/>
+<link href="maplibre-gl.css" rel="stylesheet"/>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<div id="splash">
+  <div class="sp-logo"><svg viewBox="0 0 60 60" width="60" height="60"><polygon points="30,4 52,52 30,42 8,52" fill="#4fc3f7" stroke="#fff" stroke-width="1.5"/><polygon points="30,4 41,28 30,24" fill="#fff" opacity=".5"/><circle cx="30" cy="30" r="5" fill="#fff"/></svg></div>
+  <div class="sp-name">Navitr</div>
+  <div class="sp-sub">Türkçe Sesli Navigasyon</div>
+  <div class="sp-bar"><div class="sp-fill"></div></div>
+</div>
+
+<div id="map"></div>
+
+<!-- AR -->
+<div id="ar-overlay" class="hidden">
+  <video id="ar-video" autoplay playsinline muted></video>
+  <canvas id="ar-canvas"></canvas>
+  <button class="ar-close" onclick="toggleAR()">✕</button>
+</div>
+
+<!-- NAV KARTI - sol üst -->
+<div id="nav-bar" class="hidden">
+  <div id="nav-arrow-box">
+    <div id="nav-icon-wrap"></div>
+    <div id="nav-dist">--</div>
+  </div>
+  <div id="nav-info">
+    <div id="nav-instr">Düz devam edin</div>
+    <div id="nav-street">--</div>
+    <div id="nav-address" onclick="editAddress()" title="Düzenlemek için tıkla">--</div>
+  </div>
+  <!-- Sonraki manevra -->
+  <div id="nav-next-box" class="hidden">
+    <div id="nav-next-icon"></div>
+    <div id="nav-next-text">--</div>
+    <div id="nav-next-dist">--</div>
+  </div>
+</div>
+
+<!-- ARAMA -->
+<div id="search-wrap">
+  <div id="search-row">
+    <input id="search-input" type="text" placeholder="Nereye gidiyorsunuz?" autocomplete="off"/>
+    <button onclick="searchPlace()" aria-label="Ara">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+    </button>
+  </div>
+  <div id="search-results"></div>
+</div>
+
+<!-- HIZ -->
+<div id="spd-panel">
+  <canvas id="spd-canvas" width="80" height="80"></canvas>
+  <div id="spd-num">0</div>
+  <div id="spd-lbl">km/s</div>
+</div>
+
+<!-- UYARILAR -->
+<div id="radar-alert" class="alert-box hidden">
+  <svg viewBox="0 0 36 36" width="32" height="32"><rect x="4" y="9" width="28" height="18" rx="3" fill="#fff" opacity=".2"/><circle cx="18" cy="18" r="6" fill="none" stroke="#fff" stroke-width="2"/><circle cx="18" cy="18" r="2.5" fill="#fff"/><rect x="16" y="2" width="4" height="7" rx="1.5" fill="#fff"/></svg>
+  <div class="al-label">RADAR</div><div class="al-dist" id="radar-dist-text">--</div>
+</div>
+<div id="police-alert" class="alert-box police hidden">
+  <svg viewBox="0 0 36 36" width="32" height="32"><polygon points="18,3 31,11 31,25 18,33 5,25 5,11" fill="none" stroke="#fff" stroke-width="2"/><text x="18" y="23" text-anchor="middle" font-size="14" font-weight="bold" fill="#fff" font-family="Arial">P</text></svg>
+  <div class="al-label">POLİS</div><div class="al-dist" id="police-dist-text">--</div>
+</div>
+<div id="mobile-radar-alert" class="alert-box mobile-radar hidden">
+  <svg viewBox="0 0 36 36" width="32" height="32"><line x1="18" y1="33" x2="12" y2="23" stroke="#fff" stroke-width="2"/><line x1="18" y1="33" x2="18" y2="23" stroke="#fff" stroke-width="2"/><line x1="18" y1="33" x2="24" y2="23" stroke="#fff" stroke-width="2"/><rect x="9" y="12" width="18" height="12" rx="2.5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="18" cy="18" r="4" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="18" cy="18" r="1.5" fill="#fff"/></svg>
+  <div class="al-label">SEYYAR</div><div class="al-dist" id="mobile-radar-dist-text">--</div>
+</div>
+
+<!-- ROTA ALT BAR -->
+<div id="route-bar" class="hidden">
+  <div id="rb-eta">
+    <div id="rb-time">--</div>
+    <div class="rb-u" id="rb-unit">dk</div>
+  </div>
+  <div id="rb-mid">
+    <div id="rb-dist">--</div>
+    <div id="rb-arr">--</div>
+  </div>
+  <button id="rb-cancel" onclick="cancelRoute()">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>
+
+<!-- ROTA MODAL -->
+<div id="route-modal" class="hidden">
+  <div id="route-modal-inner">
+    <div id="rm-header">
+      <div id="rm-dest-name">Hedef</div>
+      <button id="rm-close" onclick="closeRouteModal()">✕</button>
+    </div>
+    <div class="rm-section">Ulaşım</div>
+    <div id="rm-transport">
+      <button class="tm-btn active" data-mode="driving" onclick="selectTransport(this)">
+        <svg viewBox="0 0 32 22" width="28" height="20"><path d="M4 15h24v-4l-3-7H7L4 11v4z" fill="#4285F4"/><circle cx="9" cy="15" r="3" fill="#222"/><circle cx="23" cy="15" r="3" fill="#222"/><rect x="9" y="7" width="14" height="5" rx="1" fill="#90CAF9"/></svg>
+        <span>Araba</span>
+      </button>
+      <button class="tm-btn" data-mode="cycling" onclick="selectTransport(this)">
+        <svg viewBox="0 0 28 22" width="28" height="22"><circle cx="6" cy="15" r="5" fill="none" stroke="#555" stroke-width="2"/><circle cx="22" cy="15" r="5" fill="none" stroke="#555" stroke-width="2"/><path d="M6 15L14 7L22 15" fill="none" stroke="#00897B" stroke-width="2"/></svg>
+        <span>Bisiklet</span>
+      </button>
+      <button class="tm-btn" data-mode="foot" onclick="selectTransport(this)">
+        <svg viewBox="0 0 20 28" width="18" height="26"><circle cx="10" cy="4" r="3" fill="#555"/><path d="M10 7L7 18L4 26M10 7L13 18L16 26" fill="none" stroke="#555" stroke-width="2.5" stroke-linecap="round"/></svg>
+        <span>Yürüyüş</span>
+      </button>
+      <button class="tm-btn" data-mode="driving-hgv" onclick="selectTransport(this)">
+        <svg viewBox="0 0 36 22" width="32" height="20"><rect x="2" y="8" width="20" height="12" rx="2" fill="#FF6F00"/><path d="M22 10h10l3 5v5H22V10z" fill="#FF8F00"/><circle cx="8" cy="20" r="2.5" fill="#222"/><circle cx="28" cy="20" r="2.5" fill="#222"/></svg>
+        <span>Kamyon</span>
+      </button>
+    </div>
+    <div class="rm-section">Tercih</div>
+    <div id="rm-prefs">
+      <label class="rm-pref active" data-pref="fastest" onclick="selectPref(this)"><span class="rp-label">En Hızlı</span></label>
+      <label class="rm-pref" data-pref="shortest" onclick="selectPref(this)"><span class="rp-label">En Kısa</span></label>
+      <label class="rm-pref" data-pref="no-highway" onclick="selectPref(this)"><span class="rp-label">Otoyolsuz</span></label>
+      <label class="rm-pref" data-pref="no-toll" onclick="selectPref(this)"><span class="rp-label">Ücretsiz</span></label>
+    </div>
+    <div class="rm-section">Rotalar</div>
+    <div id="rm-alternatives">
+      <div class="rm-alt-item loading" id="alt-0"><div class="alt-badge">A</div><div class="alt-info"><div class="alt-name">Hesaplanıyor...</div><div class="alt-meta">--</div></div><button class="alt-select-btn" onclick="selectAltRoute(0)">Seç</button></div>
+      <div class="rm-alt-item" id="alt-1" style="display:none"><div class="alt-badge alt-b">B</div><div class="alt-info"><div class="alt-name">--</div><div class="alt-meta">--</div></div><button class="alt-select-btn" onclick="selectAltRoute(1)">Seç</button></div>
+      <div class="rm-alt-item" id="alt-2" style="display:none"><div class="alt-badge alt-c">C</div><div class="alt-info"><div class="alt-name">--</div><div class="alt-meta">--</div></div><button class="alt-select-btn" onclick="selectAltRoute(2)">Seç</button></div>
+    </div>
+    <button id="rm-start" onclick="startSelectedRoute()">▶ Navigasyonu Başlat</button>
+  </div>
+</div>
+
+<!-- SAĞ FAB MENÜ (radarbot tarzı) -->
+<div id="fabs">
+  <button class="fab" id="fab-locate" onclick="centerOnUser()" title="Konumumu Bul">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8" stroke-dasharray="3 2" opacity=".5"/></svg>
+  </button>
+  <button class="fab" id="fab-tilt" onclick="toggleTilt()" title="3D">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20L12 4l10 16"/><path d="M5 20L12 8l7 12" opacity=".4"/></svg>
+  </button>
+  <button class="fab" onclick="togglePanel('layer-panel')" title="Katmanlar">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+  </button>
+  <button class="fab" id="fab-traffic" onclick="toggleTraffic()" title="Trafik">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="20" rx="3"/><circle cx="12" cy="7" r="2" fill="#e53935" stroke="none"/><circle cx="12" cy="12" r="2" fill="#ffd600" stroke="none"/><circle cx="12" cy="17" r="2" fill="#00c853" stroke="none"/></svg>
+  </button>
+  <button class="fab" onclick="togglePanel('settings-panel')" title="Ayarlar">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  </button>
+  <button class="fab" onclick="togglePanel('nearby-panel')" title="Yakın">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+  </button>
+  <button class="fab" onclick="map.zoomIn()">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+  <button class="fab" onclick="map.zoomOut()">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+</div>
+
+<!-- PUSULA -->
+<div id="compass" onclick="resetBearing()">
+  <svg viewBox="0 0 36 36" width="28" height="28"><circle cx="18" cy="18" r="16" fill="none" stroke="#555" stroke-width="1.5"/><polygon id="compass-needle-n" points="18,4 21,18 18,16 15,18" fill="#e53935"/><polygon id="compass-needle-s" points="18,32 21,18 18,20 15,18" fill="#bbb"/><circle cx="18" cy="18" r="2.5" fill="#fff"/></svg>
+</div>
+
+<!-- KATMAN PANELİ -->
+<div id="layer-panel" class="panel hidden">
+  <div class="p-head"><span>Katmanlar</span><button class="p-close" onclick="closePanel('layer-panel')">✕</button></div>
+  <div class="p-section">Harita Stili</div>
+  <label class="p-row"><input type="radio" name="bm" value="osm" checked onchange="changeBasemap(this.value)"> Standart</label>
+  <label class="p-row"><input type="radio" name="bm" value="3d" onchange="changeBasemap(this.value)"> 3D Şehir</label>
+  <label class="p-row"><input type="radio" name="bm" value="satellite" onchange="changeBasemap(this.value)"> Uydu</label>
+  <label class="p-row"><input type="radio" name="bm" value="dark" onchange="changeBasemap(this.value)"> Gece</label>
+  <label class="p-row"><input type="radio" name="bm" value="topo" onchange="changeBasemap(this.value)"> Topografik</label>
+  <div class="p-section">Katmanlar</div>
+  <label class="p-row"><input type="checkbox" id="lyr-radar" checked onchange="toggleRadarLayer(this.checked)"> Sabit Radarlar</label>
+  <label class="p-row"><input type="checkbox" id="lyr-mobile-radar" checked onchange="toggleMobileRadarLayer(this.checked)"> Seyyar Radarlar</label>
+  <label class="p-row"><input type="checkbox" id="lyr-police" checked onchange="togglePoliceLayer(this.checked)"> Polis</label>
+  <label class="p-row"><input type="checkbox" id="lyr-3d" checked onchange="toggle3DBuildings(this.checked)"> 3D Binalar</label>
+  <label class="p-row"><input type="checkbox" id="lyr-traffic" onchange="toggleTrafficLayer(this.checked)"> Trafik</label>
+</div>
+
+<!-- AYARLAR PANELİ -->
+<div id="settings-panel" class="panel hidden">
+  <div class="p-head"><span>Ayarlar</span><button class="p-close" onclick="closePanel('settings-panel')">✕</button></div>
+  <label class="p-row"><input type="checkbox" id="set-voice" checked onchange="settings.voice=this.checked"> Sesli Yönlendirme</label>
+  <label class="p-row"><input type="checkbox" id="set-radar" checked onchange="settings.radar=this.checked"> Radar Uyarısı</label>
+  <label class="p-row"><input type="checkbox" id="set-police" checked onchange="settings.police=this.checked"> Polis Uyarısı</label>
+  <label class="p-row"><input type="checkbox" id="set-night" onchange="toggleNightMode(this.checked)"> Gece Modu (Otomatik)</label>
+  <div class="p-section">Avatar</div>
+  <div id="avatar-grid" style="display:flex;gap:10px;margin-bottom:8px">
+    <div class="av selected" data-v="triangle" onclick="selectAvatar(this)" title="Üçgen" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border-radius:10px;border:2px solid #4fc3f7;background:rgba(79,195,247,0.12);cursor:pointer">
+      <svg viewBox="0 0 48 48" width="36" height="36"><defs><linearGradient id="ag_t" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#4fc3f7"/><stop offset="100%" stop-color="#0277bd"/></linearGradient></defs><polygon points="24,4 42,44 24,34 6,44" fill="url(#ag_t)"/><polygon points="24,4 15,24 24,20" fill="#81d4fa" opacity=".5"/><circle cx="24" cy="28" r="5" fill="#fff" opacity=".95"/><circle cx="24" cy="28" r="2.5" fill="#0277bd"/></svg>
+      <span style="font-size:10px;color:#4fc3f7;font-weight:600">Üçgen</span>
+    </div>
+    <div class="av" data-v="dot" onclick="selectAvatar(this)" title="Nokta" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px;border-radius:10px;border:2px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);cursor:pointer">
+      <svg viewBox="0 0 48 48" width="36" height="36"><circle cx="24" cy="24" r="18" fill="rgba(79,195,247,0.2)"/><circle cx="24" cy="24" r="12" fill="#4fc3f7"/><circle cx="24" cy="24" r="7" fill="#fff"/><circle cx="24" cy="24" r="4" fill="#0277bd"/><circle cx="24" cy="24" r="1.5" fill="#fff"/></svg>
+      <span style="font-size:10px;color:#aaa;font-weight:600">Nokta</span>
+    </div>
+  </div>
+  <div class="p-section">Kamera Açısı</div>
+  <div class="cam-grid">
+    <button class="cam-btn active" data-mode="follow" onclick="setCameraMode('follow')">Takip</button>
+    <button class="cam-btn" data-mode="top" onclick="setCameraMode('top')">Üstten</button>
+    <button class="cam-btn" data-mode="front" onclick="setCameraMode('front')">Önden</button>
+    <button class="cam-btn" data-mode="back" onclick="setCameraMode('back')">Arkadan</button>
+    <button class="cam-btn" data-mode="left" onclick="setCameraMode('left')">Soldan</button>
+    <button class="cam-btn" data-mode="right" onclick="setCameraMode('right')">Sağdan</button>
+  </div>
+  <div class="p-section">Kayıtlı Konumlar</div>
+  <button class="p-btn" onclick="saveHome()">Evi Kaydet</button>
+  <button class="p-btn" onclick="saveCar()">Arabamı Kaydet</button>
+  <button class="p-btn" onclick="goHome()">Eve Git</button>
+  <button class="p-btn" onclick="gotoCar()">Arabama Git</button>
+  <button class="p-btn" style="background:rgba(229,57,53,0.3);color:#ef9a9a" onclick="deleteHome()">Evi Sil</button>
+  <button class="p-btn" style="background:rgba(229,57,53,0.3);color:#ef9a9a" onclick="deleteCar()">Araç Konumunu Sil</button>
+  <button class="p-btn" style="background:#1e1e2e" onclick="openPanel('pins-panel')">Kayıtlı Yerler</button>
+  <div class="p-section">Konum Paylaş</div>
+  <button class="p-btn" id="share-btn" onclick="toggleShare()">Paylaşmayı Başlat</button>
+  <div id="share-info" style="display:none;margin-top:6px">
+    <div style="font-size:11px;color:#4fc3f7;margin-bottom:4px">Paylaşım Kodu:</div>
+    <div id="share-code" style="font-size:14px;font-weight:700;color:#fff;letter-spacing:2px;background:rgba(79,195,247,0.1);padding:6px 10px;border-radius:8px;text-align:center"></div>
+    <button class="p-btn" style="margin-top:6px" onclick="copyShareLink()">Linki Kopyala</button>
+  </div>
+</div>
+
+<!-- YAKINDAKI YERLER -->
+<div id="nearby-panel" class="panel hidden">
+  <div class="p-head"><span>Yakındaki Yerler</span><button class="p-close" onclick="closePanel('nearby-panel')">✕</button></div>
+  <div id="nearby-cats">
+    <button class="cat active" onclick="filterNearby('all',this)">Tümü</button>
+    <button class="cat" onclick="filterNearby('fuel',this)">Akaryakıt</button>
+    <button class="cat" onclick="filterNearby('restaurant',this)">Restoran</button>
+    <button class="cat" onclick="filterNearby('hospital',this)">Hastane</button>
+    <button class="cat" onclick="filterNearby('pharmacy',this)">Eczane</button>
+    <button class="cat" onclick="filterNearby('atm',this)">ATM</button>
+    <button class="cat" onclick="filterNearby('parking',this)">Otopark</button>
+    <button class="cat" onclick="filterNearby('mosque',this)">Cami</button>
+    <button class="cat" onclick="filterNearby('market',this)">Market</button>
+    <button class="cat" onclick="filterNearby('government',this)">Resmi</button>
+  </div>
+  <div id="nearby-list"></div>
+</div>
+
+<!-- KAYITLI YERLER -->
+<div id="pins-panel" class="panel hidden">
+  <div class="p-head"><span>Kayıtlı Yerler</span><button class="p-close" onclick="closePanel('pins-panel')">✕</button></div>
+  <div id="pins-list"></div>
+  <button class="p-btn" style="background:#c62828;margin-top:8px" onclick="clearAllPins()">Tümünü Sil</button>
+</div>
+
+<!-- TRAFİK LEGEND -->
+<div id="traffic-legend" class="hidden">
+  <div class="tl"><span style="background:#00c853"></span>Akıcı</div>
+  <div class="tl"><span style="background:#ffd600"></span>Orta</div>
+  <div class="tl"><span style="background:#ff6d00"></span>Yoğun</div>
+  <div class="tl"><span style="background:#d50000"></span>Çok Yoğun</div>
+</div>
+
+<div id="reroute-toast" class="hidden">Rota yeniden hesaplanıyor...</div>
+
+<script src="maplibre-gl.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

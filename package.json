@@ -1,0 +1,12 @@
+{
+  "name": "restorebana-navigation",
+  "version": "1.0.0",
+  "description": "Türkçe Sesli Navigasyon Uygulaması",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

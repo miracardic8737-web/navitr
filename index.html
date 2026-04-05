@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RestoreBana Navigasyon</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">🗺️</div>
+  <div class="splash-title">RestoreBana</div>
+  <div class="splash-sub">Türkçe Sesli Navigasyon</div>
+  <div class="splash-loader"><div></div></div>
+</div>
+
+<!-- ANA HARİTA -->
+<div id="map"></div>
+
+<!-- AR OVERLAY -->
+<div id="ar-overlay" class="hidden">
+  <video id="ar-video" autoplay playsinline muted></video>
+  <canvas id="ar-canvas"></canvas>
+  <div id="ar-info">
+    <div id="ar-direction">↑ Düz Git</div>
+    <div id="ar-distance">0 m</div>
+  </div>
+  <button id="ar-close" onclick="toggleAR()">✕ AR Kapat</button>
+</div>
+
+<!-- ÜST BAR -->
+<div id="top-bar">
+  <div id="eta-box">
+    <span id="eta-time">--</span>
+    <span id="eta-label">dk</span>
+  </div>
+  <div id="speed-box">
+    <span id="current-speed">0</span>
+    <span class="unit">km/s</span>
+  </div>
+  <div id="limit-box">
+    <span id="speed-limit">--</span>
+  </div>
+</div>
+
+<!-- YÖNLENDIRME KUTUSU -->
+<div id="nav-box" class="hidden">
+  <div id="nav-arrow">↑</div>
+  <div id="nav-instruction">Rota hesaplanıyor...</div>
+  <div id="nav-dist">--</div>
+</div>
+
+<!-- HIZ GÖSTERGESİ -->
+<div id="speedometer">
+  <canvas id="speed-canvas" width="120" height="120"></canvas>
+  <div id="speed-value">0</div>
+  <div id="speed-unit">km/s</div>
+</div>
+
+<!-- RADAR UYARI -->
+<div id="radar-alert" class="hidden">
+  <div id="radar-icon">📷</div>
+  <div id="radar-text">RADAR</div>
+  <div id="radar-dist-text">1000 m</div>
+</div>
+
+<!-- POLİS UYARI -->
+<div id="police-alert" class="hidden">
+  <div id="police-icon">🚔</div>
+  <div id="police-text">POLİS</div>
+  <div id="police-dist-text">1000 m</div>
+</div>
+
+<!-- ARAMA KUTUSU -->
+<div id="search-box">
+  <input id="search-input" type="text" placeholder="🔍 Nereye gitmek istiyorsunuz?" />
+  <button id="search-btn" onclick="searchPlace()">Git</button>
+  <div id="search-results"></div>
+</div>
+
+<!-- SAĞ KONTROLLER -->
+<div id="right-controls">
+  <button class="ctrl-btn" onclick="centerOnUser()" title="Konumum">📍</button>
+  <button class="ctrl-btn" onclick="toggleLayers()" title="Katmanlar">🗂️</button>
+  <button class="ctrl-btn" onclick="toggleTraffic()" title="Trafik">🚦</button>
+  <button class="ctrl-btn" onclick="toggleAR()" title="AR">🥽</button>
+  <button class="ctrl-btn" onclick="toggleSettings()" title="Ayarlar">⚙️</button>
+  <button class="ctrl-btn" onclick="shareLocation()" title="Konum Paylaş">📡</button>
+  <button class="ctrl-btn" onclick="toggleNearby()" title="Yakındaki Yerler">🏪</button>
+  <button class="ctrl-btn" onclick="zoomIn()">+</button>
+  <button class="ctrl-btn" onclick="zoomOut()">−</button>
+</div>
+
+<!-- KATMAN PANELİ -->
+<div id="layer-panel" class="panel hidden">
+  <div class="panel-title">🗂️ Harita Katmanları</div>
+  <label><input type="radio" name="basemap" value="osm" checked onchange="changeBasemap(this.value)"> 🗺️ OpenStreetMap</label>
+  <label><input type="radio" name="basemap" value="satellite" onchange="changeBasemap(this.value)"> 🛰️ Uydu</label>
+  <label><input type="radio" name="basemap" value="topo" onchange="changeBasemap(this.value)"> ⛰️ Topografik</label>
+  <label><input type="radio" name="basemap" value="dark" onchange="changeBasemap(this.value)"> 🌙 Gece Modu</label>
+  <hr>
+  <label><input type="checkbox" id="layer-traffic" onchange="toggleTrafficLayer(this.checked)"> 🚦 Trafik Yoğunluğu</label>
+  <label><input type="checkbox" id="layer-radar" checked onchange="toggleRadarLayer(this.checked)"> 📷 Radarlar</label>
+  <label><input type="checkbox" id="layer-police" checked onchange="togglePoliceLayer(this.checked)"> 🚔 Polis Noktaları</label>
+  <label><input type="checkbox" id="layer-poi" onchange="togglePOILayer(this.checked)"> 🏪 İlgi Noktaları</label>
+  <label><input type="checkbox" id="layer-3d" onchange="toggle3D(this.checked)"> 🏙️ 3D Binalar</label>
+</div>
+
+<!-- AYARLAR PANELİ -->
+<div id="settings-panel" class="panel hidden">
+  <div class="panel-title">⚙️ Ayarlar</div>
+  <label><input type="checkbox" id="set-voice" checked onchange="settings.voice=this.checked"> 🔊 Sesli Yönlendirme</label>
+  <label><input type="checkbox" id="set-radar-warn" checked onchange="settings.radarWarn=this.checked"> 📷 Radar Uyarısı</label>
+  <label><input type="checkbox" id="set-police-warn" checked onchange="settings.policeWarn=this.checked"> 🚔 Polis Uyarısı</label>
+  <label><input type="checkbox" id="set-traffic" onchange="settings.traffic=this.checked;toggleTraffic()"> 🚦 Canlı Trafik</label>
+  <label><input type="checkbox" id="set-ar" onchange="settings.ar=this.checked"> 🥽 Artırılmış Gerçeklik</label>
+  <label><input type="checkbox" id="set-share" onchange="settings.shareLocation=this.checked"> 📡 Konum Paylaşımı</label>
+  <label><input type="checkbox" id="set-speedcam" checked onchange="settings.speedCam=this.checked"> 🎥 Seyyar Radar Uyarısı</label>
+  <hr>
+  <div class="panel-title">🚗 Sürüş Avatarı</div>
+  <div id="avatar-select">
+    <span class="avatar-opt selected" data-v="🚗" onclick="selectAvatar(this)">🚗</span>
+    <span class="avatar-opt" data-v="🚙" onclick="selectAvatar(this)">🚙</span>
+    <span class="avatar-opt" data-v="🏎️" onclick="selectAvatar(this)">🏎️</span>
+    <span class="avatar-opt" data-v="🚕" onclick="selectAvatar(this)">🚕</span>
+    <span class="avatar-opt" data-v="🚌" onclick="selectAvatar(this)">🚌</span>
+    <span class="avatar-opt" data-v="🛻" onclick="selectAvatar(this)">🛻</span>
+    <span class="avatar-opt" data-v="🏍️" onclick="selectAvatar(this)">🏍️</span>
+    <span class="avatar-opt" data-v="🚲" onclick="selectAvatar(this)">🚲</span>
+  </div>
+  <hr>
+  <div class="panel-title">📍 Kayıtlı Konumlar</div>
+  <button class="panel-btn" onclick="saveHome()">🏠 Evi Kaydet</button>
+  <button class="panel-btn" onclick="saveCar()">🚗 Arabamı Kaydet</button>
+  <button class="panel-btn" onclick="goHome()">🏠 Eve Git</button>
+  <button class="panel-btn" onclick="gotoCar()">🚗 Arabama Git</button>
+</div>
+
+<!-- YAKINDAKI YERLER -->
+<div id="nearby-panel" class="panel hidden">
+  <div class="panel-title">🏪 Yakındaki Yerler</div>
+  <div id="nearby-filters">
+    <button class="filter-btn active" onclick="filterNearby('all',this)">Tümü</button>
+    <button class="filter-btn" onclick="filterNearby('fuel',this)">⛽ Akaryakıt</button>
+    <button class="filter-btn" onclick="filterNearby('restaurant',this)">🍽️ Restoran</button>
+    <button class="filter-btn" onclick="filterNearby('hospital',this)">🏥 Hastane</button>
+    <button class="filter-btn" onclick="filterNearby('pharmacy',this)">💊 Eczane</button>
+    <button class="filter-btn" onclick="filterNearby('atm',this)">🏧 ATM</button>
+    <button class="filter-btn" onclick="filterNearby('parking',this)">🅿️ Otopark</button>
+    <button class="filter-btn" onclick="filterNearby('hotel',this)">🏨 Otel</button>
+    <button class="filter-btn" onclick="filterNearby('mosque',this)">🕌 Cami</button>
+  </div>
+  <div id="nearby-list"></div>
+</div>
+
+<!-- KONUM PAYLAŞIM LİNKİ -->
+<div id="share-panel" class="panel hidden">
+  <div class="panel-title">📡 Canlı Konum Paylaş</div>
+  <div id="share-link-box">
+    <input id="share-link" type="text" readonly />
+    <button onclick="copyShareLink()">📋 Kopyala</button>
+  </div>
+  <div id="share-qr"></div>
+  <button class="panel-btn" onclick="stopSharing()">⛔ Paylaşımı Durdur</button>
+</div>
+
+<!-- ROTA BİLGİSİ -->
+<div id="route-info" class="hidden">
+  <span id="route-dist">--</span>
+  <span id="route-time">--</span>
+  <button onclick="cancelRoute()">✕</button>
+</div>
+
+<!-- TRAFIK GÖSTERGESI -->
+<div id="traffic-legend" class="hidden">
+  <div class="tl-item"><span style="background:#00c853"></span> Akıcı</div>
+  <div class="tl-item"><span style="background:#ffd600"></span> Orta</div>
+  <div class="tl-item"><span style="background:#ff6d00"></span> Yoğun</div>
+  <div class="tl-item"><span style="background:#d50000"></span> Çok Yoğun</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
