@@ -104,3 +104,10 @@ app.get('/share/:id', (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`RestoreBana çalışıyor: http://localhost:${PORT}`));
+
+// Render uyku modunu önle - kendi kendine ping
+if(process.env.RENDER_EXTERNAL_URL){
+  setInterval(()=>{
+    https.get(process.env.RENDER_EXTERNAL_URL, ()=>{}).on('error',()=>{});
+  }, 14 * 60 * 1000); // 14 dakikada bir
+}
