@@ -76,8 +76,16 @@ body:has(#route-bar:not(.hidden)) #spd-panel{bottom:80px;}
 #spd-num{position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:22px;font-weight:800;color:#fff;}
 #spd-lbl{font-size:9px;color:#666;margin-top:-2px;}
 
-/* Attribution gizle */
-.maplibregl-ctrl-attrib,.maplibregl-ctrl-attrib-button,.maplibregl-ctrl-bottom-right{display:none!important;}
+/* Attribution tamamen gizle */
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib-button,
+.maplibregl-ctrl-attrib-inner,
+.maplibregl-ctrl-bottom-right,
+.maplibregl-ctrl-bottom-left,
+.maplibregl-ctrl-logo,
+a[href*="maplibre"],
+a[href*="openstreetmap"],
+a[href*="openmaptiles"]{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important;}
 
 /* UYARILAR */
 .alert-box{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(229,57,53,0.95);color:#fff;padding:14px 22px;border-radius:16px;text-align:center;z-index:500;box-shadow:0 0 40px rgba(229,57,53,0.6);animation:ap .4s infinite alternate;display:flex;flex-direction:column;align-items:center;gap:4px;}

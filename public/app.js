@@ -428,7 +428,7 @@ function initMap(){
     });
   }
 
-  map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
+  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:''}),'bottom-right');
 
   map.on('load',()=>{
     add3D();
