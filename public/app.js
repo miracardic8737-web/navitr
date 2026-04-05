@@ -558,32 +558,29 @@ function startGPS(){
     showToast('Bu cihaz GPS desteklemiyor');
     return;
   }
-  // Önce izin durumunu kontrol et
-  if(navigator.permissions){
-    navigator.permissions.query({name:'geolocation'}).then(result=>{
-      if(result.state==='denied'){
-        showToast('Konum izni reddedildi. Tarayıcı ayarlarından izin verin.');
-        return;
-      }
-      _startWatch();
-    }).catch(()=>_startWatch());
-  }else{
-    _startWatch();
-  }
+  _startWatch();
 }
 
 function _startWatch(){
-  // İlk konum için hemen sor (izin dialogu açılır)
+  // Direkt sor - tarayıcı izin dialogunu otomatik açar
   navigator.geolocation.getCurrentPosition(
     onPos,
-    onPosErr,
+    (err)=>{
+      if(err.code===1){
+        // İzin reddedildi - kullanıcıya bilgi ver
+        showToast('Konum izni gerekli. Adres çubuğundaki kilit ikonuna tıklayın.');
+      }else{
+        onPosErr(err);
+      }
+    },
     {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
-  // Sonra sürekli takip
+  // Sürekli takip
+  if(watchId)navigator.geolocation.clearWatch(watchId);
   watchId=navigator.geolocation.watchPosition(
     onPos,
     onPosErr,
-    {enableHighAccuracy:true,maximumAge:500,timeout:10000}
+    {enableHighAccuracy:true,maximumAge:1000,timeout:10000}
   );
 }
 
