@@ -974,19 +974,45 @@ function selectPref(el){
 }
 
 async function fetchAltRoutes(){
-  if(!userLat||!destCoords)return;
+  if(!destCoords)return;
+
+  // GPS yoksa bekle
+  if(!userLat){
+    showToast('Konum alınıyor...');
+    let tries=0;
+    const wait=setInterval(()=>{
+      tries++;
+      if(userLat){clearInterval(wait);fetchAltRoutes();}
+      else if(tries>20){clearInterval(wait);showToast('Konum alınamadı, tekrar deneyin');}
+    },500);
+    return;
+  }
+
   const profileMap={driving:'car',cycling:'bike',foot:'foot','driving-hgv':'truck',motorcycle:'car'};
   const osrmP=selTransport==='cycling'?'bike':selTransport==='foot'?'foot':'car';
   const speedP=profileMap[selTransport]||'car';
   const url=`https://router.project-osrm.org/route/v1/${osrmP}/${userLon},${userLat};${destCoords.lon},${destCoords.lat}?alternatives=3&steps=true&geometries=geojson&overview=full`;
+
+  // Loading göster
+  const alt0=document.getElementById('alt-0');
+  if(alt0){alt0.classList.add('loading');alt0.querySelector('.alt-name').textContent='Hesaplanıyor...';}
+
   try{
-    const r=await fetch(url);const data=await r.json();
-    if(!data.routes||!data.routes.length)return;
+    const r=await fetch(url,{signal:AbortSignal.timeout(15000)});
+    const data=await r.json();
+    if(!data.routes||!data.routes.length){
+      showToast('Bu rota için yol bulunamadı');
+      if(alt0){alt0.classList.remove('loading');alt0.querySelector('.alt-name').textContent='Rota bulunamadı';}
+      return;
+    }
     altRoutes=data.routes.map(rt=>({...rt,duration:calcDur(rt.distance,speedP)}));
     selRoute=0;
     renderAltRoutes();
     previewRoute(0);
-  }catch(e){showToast('Rota hesaplanamadı');}
+  }catch(e){
+    if(alt0){alt0.classList.remove('loading');alt0.querySelector('.alt-name').textContent='Bağlantı hatası';}
+    showToast('Rota hesaplanamadı - internet bağlantısını kontrol edin');
+  }
 }
 
 function renderAltRoutes(){
