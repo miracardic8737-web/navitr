@@ -893,29 +893,24 @@ function getSearchIcon(type,cls){
 
 async function searchPlace(){
   const q=document.getElementById('search-input').value.trim();
-  if(!q)return;
+  if(!q||q.length<2)return;
   const el=document.getElementById('search-results');
-  el.innerHTML='<div class="sr-item" style="color:#888;padding:12px">Aranıyor...</div>';
   el.style.display='block';
   try{
     const data=await nominatimSearch(q);
     if(!data||!data.length){
-      el.innerHTML='<div class="sr-item" style="color:#888;padding:12px">Sonuç bulunamadı</div>';
+      el.innerHTML='<div class="sr-item" style="color:#888;padding:10px">Sonuç bulunamadı</div>';
       return;
     }
     el.innerHTML=data.map(d=>{
       const addr=d.address||{};
-      // Ana isim
       const name=d.namedetails&&d.namedetails.name||d.display_name.split(',')[0];
-      // Adres detayı - sokak, mahalle, ilçe
       const parts=[];
-      if(addr.road||addr.pedestrian||addr.footway)parts.push(addr.road||addr.pedestrian||addr.footway);
-      if(addr.house_number)parts[parts.length-1]=(parts[parts.length-1]||'')+' No:'+addr.house_number;
+      if(addr.road||addr.pedestrian||addr.footway||addr.street)parts.push(addr.road||addr.pedestrian||addr.footway||addr.street);
+      if(addr.house_number&&parts.length)parts[0]=parts[0]+' No:'+addr.house_number;
       if(addr.suburb||addr.neighbourhood||addr.quarter)parts.push(addr.suburb||addr.neighbourhood||addr.quarter);
-      if(addr.town||addr.city||addr.village)parts.push(addr.town||addr.city||addr.village);
-      if(addr.county||addr.state_district)parts.push(addr.county||addr.state_district);
+      if(addr.town||addr.city||addr.village||addr.county)parts.push(addr.town||addr.city||addr.village||addr.county);
       const addrStr=parts.join(', ')||d.display_name.split(',').slice(1,4).join(',');
-      // İkon
       const icon=getSearchIcon(d.type,d.class);
       const safe=name.replace(/'/g,"\\'");
       return`<div class="sr-item" onclick="pickSearch(${d.lat},${d.lon},'${safe}')">
@@ -929,7 +924,7 @@ async function searchPlace(){
       </div>`;
     }).join('');
   }catch(e){
-    el.innerHTML='<div class="sr-item" style="color:#888;padding:12px">Arama başarısız</div>';
+    el.innerHTML='<div class="sr-item" style="color:#888;padding:10px">Arama başarısız</div>';
   }
 }
 
@@ -1700,7 +1695,17 @@ function _init(){
   initMap();
   // startGPS() artık splash "Başla" butonuyla çalışıyor
   const si=document.getElementById('search-input');
-  if(si)si.addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace();});
+  if(si){
+    si.addEventListener('keydown',e=>{if(e.key==='Enter')searchPlace();});
+    // Yazarken canlı arama - 400ms debounce
+    let searchTimer=null;
+    si.addEventListener('input',()=>{
+      clearTimeout(searchTimer);
+      const v=si.value.trim();
+      if(v.length<2){document.getElementById('search-results').style.display='none';return;}
+      searchTimer=setTimeout(()=>searchPlace(),400);
+    });
+  }
   document.addEventListener('click',e=>{
     const sr=document.getElementById('search-results');
     const si2=document.getElementById('search-input');
