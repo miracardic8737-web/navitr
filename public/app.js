@@ -828,14 +828,15 @@ async function nominatimSearch(q){
     q,
     format:'json',
     countrycodes:'tr',
-    limit:'10',
+    limit:'12',
     addressdetails:'1',
     extratags:'1',
     namedetails:'1',
     'accept-language':'tr',
-    // Türkiye viewbox - daha iyi sonuç
     viewbox:'25.0,35.5,45.0,42.5',
-    bounded:'0'  // viewbox dışında da ara ama öncelik ver
+    bounded:'0',
+    // Dükkan, mağaza, işyeri de dahil et
+    featuretype:'settlement,poi,address'
   });
   try{
     const r=await fetch(`/api/search?${params}`);
