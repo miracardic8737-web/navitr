@@ -46,18 +46,23 @@ app.get('/api/search', (req, res) => {
   const params = new URLSearchParams(req.query);
   if (!params.get('format')) params.set('format', 'json');
   if (!params.get('countrycodes')) params.set('countrycodes', 'tr');
-  if (!params.get('limit')) params.set('limit', '8');
+  if (!params.get('limit')) params.set('limit', '10');
   params.set('addressdetails', '1');
   params.set('extratags', '1');
   params.set('namedetails', '1');
   params.set('accept-language', 'tr');
+
+  // q yoksa boş döndür
+  if (!params.get('q') && !params.get('street') && !params.get('city')) {
+    return res.json([]);
+  }
 
   const path = `/search?${params.toString()}`;
   const options = {
     hostname: 'nominatim.openstreetmap.org',
     path,
     method: 'GET',
-    headers: { 'User-Agent': 'Navitr/1.0' }
+    headers: { 'User-Agent': 'Navitr/1.0', 'Accept-Language': 'tr' }
   };
   const proxyReq = https.request(options, (proxyRes) => {
     res.setHeader('Content-Type', 'application/json');
@@ -65,11 +70,11 @@ app.get('/api/search', (req, res) => {
     proxyRes.on('data', chunk => data += chunk);
     proxyRes.on('end', () => {
       try { res.json(JSON.parse(data)); }
-      catch(e) { res.status(500).json([]); }
+      catch(e) { res.json([]); }
     });
   });
   proxyReq.on('error', () => res.json([]));
-  proxyReq.setTimeout(10000, () => { proxyReq.destroy(); res.json([]); });
+  proxyReq.setTimeout(12000, () => { proxyReq.destroy(); res.json([]); });
   proxyReq.end();
 });
 

@@ -825,23 +825,46 @@ async function overpassQuery(q){
 
 async function nominatimSearch(q){
   // Türkiye odaklı, adres + POI + bina no hepsini ara
+  // Structured search için adres parçalarını ayır
   const params=new URLSearchParams({
     q,
     format:'json',
     countrycodes:'tr',
-    limit:'8',
+    limit:'10',
     addressdetails:'1',
     extratags:'1',
     namedetails:'1',
     'accept-language':'tr'
   });
+
+  // Structured adres araması da dene (sokak no için daha iyi)
+  const structuredParams=new URLSearchParams({
+    format:'json',
+    countrycodes:'tr',
+    limit:'5',
+    addressdetails:'1',
+    'accept-language':'tr'
+  });
+
+  // "Atatürk Cad No:5 Kadıköy" gibi girişleri parse et
+  const noMatch=q.match(/no[:\s]*(\d+)/i);
+  const streetMatch=q.replace(/no[:\s]*\d+/i,'').trim();
+  if(noMatch){
+    structuredParams.set('street',noMatch[1]+' '+streetMatch);
+  }
+
   try{
     const r=await fetch(`/api/search?${params}`);
     if(!r.ok)throw new Error();
-    return await r.json();
+    const data=await r.json();
+    if(data&&data.length>0)return data;
+    throw new Error('no results');
   }catch(e){
-    const r2=await fetch(`https://nominatim.openstreetmap.org/search?${params}`,{headers:{'Accept-Language':'tr'}});
-    return await r2.json();
+    // Fallback: direkt Nominatim
+    try{
+      const r2=await fetch(`https://nominatim.openstreetmap.org/search?${params}`,{headers:{'Accept-Language':'tr','User-Agent':'Navitr/1.0'}});
+      return await r2.json();
+    }catch(e2){return [];}
   }
 }
 
