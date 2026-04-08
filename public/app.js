@@ -891,6 +891,41 @@ function getSearchIcon(type,cls){
   return icons[type]||icons[cls]||'📍';
 }
 
+// ============ ARAMA GEÇMİŞİ ============
+let searchHistory=JSON.parse(localStorage.getItem('nav_search_history')||'[]');
+
+function addToHistory(name,lat,lon){
+  searchHistory=searchHistory.filter(h=>h.name!==name);
+  searchHistory.unshift({name,lat,lon,t:Date.now()});
+  if(searchHistory.length>10)searchHistory=searchHistory.slice(0,10);
+  localStorage.setItem('nav_search_history',JSON.stringify(searchHistory));
+}
+
+function showHistory(){
+  if(!searchHistory.length)return;
+  const el=document.getElementById('search-results');
+  el.innerHTML=`<div style="padding:6px 14px;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.8px">Son Aramalar</div>`+
+    searchHistory.map(h=>`<div class="sr-item" onclick="pickSearch(${h.lat},${h.lon},'${h.name.replace(/'/g,"\\'")}')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-size:16px;min-width:24px;text-align:center">🕐</div>
+        <div style="flex:1;font-size:13px;color:#333;font-weight:600">${h.name}</div>
+        <div onclick="event.stopPropagation();removeHistory('${h.name.replace(/'/g,"\\'")}');showHistory()" style="color:#aaa;font-size:16px;padding:4px">✕</div>
+      </div>
+    </div>`).join('');
+  el.style.display='block';
+}
+
+function removeHistory(name){
+  searchHistory=searchHistory.filter(h=>h.name!==name);
+  localStorage.setItem('nav_search_history',JSON.stringify(searchHistory));
+}
+
+function clearHistory(){
+  searchHistory=[];
+  localStorage.removeItem('nav_search_history');
+  document.getElementById('search-results').style.display='none';
+}
+
 async function searchPlace(){
   const q=document.getElementById('search-input').value.trim();
   if(!q||q.length<2)return;
@@ -931,6 +966,7 @@ async function searchPlace(){
 function pickSearch(lat,lon,name){
   document.getElementById('search-results').style.display='none';
   document.getElementById('search-input').value=name.split(',')[0];
+  addToHistory(name.split(',')[0],lat,lon);
   map.flyTo({center:[parseFloat(lon),parseFloat(lat)],zoom:15,duration:800});
   openRouteModal(parseFloat(lat),parseFloat(lon),name);
 }
@@ -1616,19 +1652,48 @@ function drawSpeedometer(spd){
   const max=200,sa=Math.PI*0.75,ea=Math.PI*2.25;
   const ang=sa+(Math.min(spd,max)/max)*(ea-sa);
   ctx.beginPath();ctx.arc(cx,cy,r-6,sa,ea);ctx.strokeStyle='#1a1a2e';ctx.lineWidth=9;ctx.stroke();
-  const col=spd>120?'#f44336':spd>80?'#ff9800':'#4caf50';
+  // Hız limitini kontrol et - yakın radardaki limit
+  let nearLimit=null;
+  if(userLat){
+    let minD=Infinity;
+    SAMPLE_RADARS.forEach(r2=>{
+      const d=dist(userLat,userLon,r2.lat,r2.lon);
+      if(d<500&&d<minD){minD=d;nearLimit=r2.limit;}
+    });
+  }
+  const overLimit=nearLimit&&spd>nearLimit;
+  const col=overLimit?'#f44336':spd>120?'#f44336':spd>80?'#ff9800':'#4caf50';
   ctx.beginPath();ctx.arc(cx,cy,r-6,sa,ang);ctx.strokeStyle=col;ctx.lineWidth=9;ctx.lineCap='round';ctx.stroke();
-  // Ticks
   for(let i=0;i<=10;i++){
     const a=sa+(i/10)*(ea-sa);
     const x1=cx+(r-16)*Math.cos(a),y1=cy+(r-16)*Math.sin(a);
     const x2=cx+(r-24)*Math.cos(a),y2=cy+(r-24)*Math.sin(a);
     ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle='#555';ctx.lineWidth=1.5;ctx.stroke();
   }
-  ctx.fillStyle='#fff';ctx.font=`bold ${Math.round(r*0.44)}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle=overLimit?'#f44336':'#fff';
+  ctx.font=`bold ${Math.round(r*0.44)}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText(Math.round(spd),cx,cy-3);
   ctx.fillStyle='#888';ctx.font=`${Math.round(r*0.2)}px Arial`;ctx.fillText('km/s',cx,cy+r*0.33);
   const num=document.getElementById('spd-num');if(num)num.textContent=Math.round(spd);
+  // Limit göster
+  const limitSign=document.getElementById('limit-sign');
+  const limitNum=document.getElementById('limit-num');
+  if(limitSign&&limitNum){
+    if(nearLimit){
+      limitSign.style.display='flex';
+      limitNum.textContent=nearLimit;
+      limitSign.style.borderColor=overLimit?'#f44336':'#d50000';
+      limitNum.style.color=overLimit?'#f44336':'#d50000';
+    }else{
+      limitSign.style.display='none';
+    }
+  }
+  // Hız aşımı ses uyarısı
+  if(overLimit&&!drawSpeedometer._warned){
+    drawSpeedometer._warned=true;
+    playAudio('hiz_asimi');
+    setTimeout(()=>{drawSpeedometer._warned=false;},10000);
+  }
 }
 
 // ============ AR ============
@@ -1702,8 +1767,16 @@ function _init(){
     si.addEventListener('input',()=>{
       clearTimeout(searchTimer);
       const v=si.value.trim();
-      if(v.length<2){document.getElementById('search-results').style.display='none';return;}
+      // X butonunu göster/gizle
+      const clr=document.getElementById('search-clear');
+      if(clr)clr.style.display=v?'block':'none';
+      if(!v){document.getElementById('search-results').style.display='none';return;}
+      if(v.length<2){showHistory();return;}
       searchTimer=setTimeout(()=>searchPlace(),400);
+    });
+    // Odaklanınca geçmişi göster
+    si.addEventListener('focus',()=>{
+      if(!si.value.trim())showHistory();
     });
   }
   document.addEventListener('click',e=>{
@@ -1716,6 +1789,11 @@ function _init(){
     const cb=document.getElementById('set-night');
     if(cb&&cb.checked)changeBasemap(h>=20||h<7?'dark':'osm');
   },60000);
+  // Başlangıçta da kontrol et
+  setTimeout(()=>{
+    const h=new Date().getHours();
+    if(h>=20||h<7)changeBasemap('dark');
+  },3000);
   const urlParams=new URLSearchParams(location.search);
   const sc=urlParams.get('share');
   if(sc)watchSharedLocation(sc);
