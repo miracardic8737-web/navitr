@@ -1291,7 +1291,7 @@ function addRadarMarkers(){
     const el=document.createElement('div');el.innerHTML=radarSVG();el.style.cursor='pointer';
     const m=new maplibregl.Marker({element:el,anchor:'center'})
       .setLngLat([r.lon,r.lat])
-      .setPopup(new maplibregl.Popup({offset:22}).setHTML(`<b>Sabit Radar</b><br>Limit: ${r.limit} km/h`))
+      .setPopup(new maplibregl.Popup({offset:22}).setHTML(`<b>Hız Noktası</b><br>Limit: ${r.limit} km/h`))
       .addTo(map);
     radarMarkers.push(m);
   });
@@ -1312,7 +1312,7 @@ async function fetchOSMRadars(){
       const limit=(e.tags&&(e.tags.maxspeed||e.tags['maxspeed:advisory']||e.tags['maxspeed:forward']))||'?';
       const m=new maplibregl.Marker({element:el2,anchor:'center'})
         .setLngLat([e.lon,e.lat])
-        .setPopup(new maplibregl.Popup({offset:22}).setHTML(`<b>Radar (OSM)</b><br>Limit: ${limit} km/h`))
+        .setPopup(new maplibregl.Popup({offset:22}).setHTML(`<b>Hız Noktası (OSM)</b><br>Limit: ${limit} km/h`))
         .addTo(map);
       radarMarkers.push(m);
       added++;
@@ -1328,7 +1328,7 @@ function addMobileMarkers(){
     const el=document.createElement('div');el.innerHTML=mobileSVG();el.style.cursor='pointer';
     const m=new maplibregl.Marker({element:el,anchor:'center'})
       .setLngLat([r.lon,r.lat])
-      .setPopup(new maplibregl.Popup({offset:22}).setHTML('<b>Seyyar Radar</b>'))
+      .setPopup(new maplibregl.Popup({offset:22}).setHTML('<b>Seyyar Hız Noktası</b>'))
       .addTo(map);
     mobileMarkers.push(m);
   });
@@ -1339,7 +1339,7 @@ function addPoliceMarkers(){
     const el=document.createElement('div');el.innerHTML=policeSVG();el.style.cursor='pointer';
     const m=new maplibregl.Marker({element:el,anchor:'center'})
       .setLngLat([p.lon,p.lat])
-      .setPopup(new maplibregl.Popup({offset:22}).setHTML('<b>Polis Noktası</b>'))
+      .setPopup(new maplibregl.Popup({offset:22}).setHTML('<b>Denetim Bölgesi</b>'))
       .addTo(map);
     policeMarkers.push(m);
   });
