@@ -1376,10 +1376,10 @@ function checkRadarProx(lat,lon){
   if(!settings.radar)return;
   SAMPLE_RADARS.forEach((r,i)=>{
     const d=dist(lat,lon,r.lat,r.lon);const k='r'+i;
-    if(d<1150&&d>900&&!radarState[k+'_1']){radarState[k+'_1']=1;playAudio('radar_1km');showAlertBox('radar-alert','radar-dist-text',Math.round(d)+' m');}
-    if(d<600&&d>400&&!radarState[k+'_5']){radarState[k+'_5']=1;playAudio('radar_500m');showAlertBox('radar-alert','radar-dist-text',Math.round(d)+' m');}
-    if(d<250&&d>150&&!radarState[k+'_2']){radarState[k+'_2']=1;playAudio('radar_200m');showAlertBox('radar-alert','radar-dist-text',Math.round(d)+' m');}
-    if(d<50&&!radarState[k+'_n']){radarState[k+'_n']=1;playAudio('radar_simdi');showAlertBox('radar-alert','radar-dist-text','Şimdi!');}
+    if(d<1150&&d>900&&!radarState[k+'_1']){radarState[k+'_1']=1;playAudio('radar_1km');speakTR('1 kilometre ileride hız noktası');showAlertBox('radar-alert','radar-dist-text',Math.round(d)+' m');}
+    if(d<600&&d>400&&!radarState[k+'_5']){radarState[k+'_5']=1;playAudio('radar_500m');speakTR('500 metre ileride hız noktası');showAlertBox('radar-alert','radar-dist-text',Math.round(d)+' m');}
+    if(d<250&&d>150&&!radarState[k+'_2']){radarState[k+'_2']=1;playAudio('radar_200m');speakTR('200 metre ileride hız noktası');showAlertBox('radar-alert','radar-dist-text',Math.round(d)+' m');}
+    if(d<50&&!radarState[k+'_n']){radarState[k+'_n']=1;playAudio('radar_simdi');speakTR('Hız noktası');showAlertBox('radar-alert','radar-dist-text','Şimdi!');}
     if(d>1300){delete radarState[k+'_1'];delete radarState[k+'_5'];delete radarState[k+'_2'];delete radarState[k+'_n'];}
   });
 }
@@ -1387,9 +1387,9 @@ function checkMobileProx(lat,lon){
   if(!settings.radar)return;
   SAMPLE_MOBILE.forEach((r,i)=>{
     const d=dist(lat,lon,r.lat,r.lon);const k='m'+i;
-    if(d<1150&&d>900&&!mobileState[k+'_1']){mobileState[k+'_1']=1;playAudio('seyyar_1km');showAlertBox('mobile-radar-alert','mobile-radar-dist-text',Math.round(d)+' m');}
-    if(d<600&&d>400&&!mobileState[k+'_5']){mobileState[k+'_5']=1;playAudio('seyyar_500m');showAlertBox('mobile-radar-alert','mobile-radar-dist-text',Math.round(d)+' m');}
-    if(d<250&&d>150&&!mobileState[k+'_2']){mobileState[k+'_2']=1;playAudio('seyyar_200m');showAlertBox('mobile-radar-alert','mobile-radar-dist-text',Math.round(d)+' m');}
+    if(d<1150&&d>900&&!mobileState[k+'_1']){mobileState[k+'_1']=1;playAudio('seyyar_1km');speakTR('1 kilometre ileride seyyar hız noktası');showAlertBox('mobile-radar-alert','mobile-radar-dist-text',Math.round(d)+' m');}
+    if(d<600&&d>400&&!mobileState[k+'_5']){mobileState[k+'_5']=1;playAudio('seyyar_500m');speakTR('500 metre ileride seyyar hız noktası');showAlertBox('mobile-radar-alert','mobile-radar-dist-text',Math.round(d)+' m');}
+    if(d<250&&d>150&&!mobileState[k+'_2']){mobileState[k+'_2']=1;playAudio('seyyar_200m');speakTR('200 metre ileride seyyar hız noktası');showAlertBox('mobile-radar-alert','mobile-radar-dist-text',Math.round(d)+' m');}
     if(d>1300){delete mobileState[k+'_1'];delete mobileState[k+'_5'];delete mobileState[k+'_2'];}
   });
 }
@@ -1397,12 +1397,35 @@ function checkPoliceProx(lat,lon){
   if(!settings.police)return;
   SAMPLE_POLICE.forEach((p,i)=>{
     const d=dist(lat,lon,p.lat,p.lon);const k='p'+i;
-    if(d<1150&&d>900&&!policeState[k+'_1']){policeState[k+'_1']=1;playAudio('polis_1km');showAlertBox('police-alert','police-dist-text',Math.round(d)+' m');}
-    if(d<600&&d>400&&!policeState[k+'_5']){policeState[k+'_5']=1;playAudio('polis_500m');showAlertBox('police-alert','police-dist-text',Math.round(d)+' m');}
-    if(d<250&&d>150&&!policeState[k+'_2']){policeState[k+'_2']=1;playAudio('polis_200m');showAlertBox('police-alert','police-dist-text',Math.round(d)+' m');}
+    if(d<1150&&d>900&&!policeState[k+'_1']){policeState[k+'_1']=1;playAudio('polis_1km');speakTR('1 kilometre ileride denetim bölgesi');showAlertBox('police-alert','police-dist-text',Math.round(d)+' m');}
+    if(d<600&&d>400&&!policeState[k+'_5']){policeState[k+'_5']=1;playAudio('polis_500m');speakTR('500 metre ileride denetim bölgesi');showAlertBox('police-alert','police-dist-text',Math.round(d)+' m');}
+    if(d<250&&d>150&&!policeState[k+'_2']){policeState[k+'_2']=1;playAudio('polis_200m');speakTR('200 metre ileride denetim bölgesi');showAlertBox('police-alert','police-dist-text',Math.round(d)+' m');}
     if(d>1300){delete policeState[k+'_1'];delete policeState[k+'_5'];delete policeState[k+'_2'];}
   });
 }
+// Web Speech API - Türkçe TTS (MP3 yoksa fallback)
+function speakTR(text){
+  if(!settings.voice)return;
+  if(!window.speechSynthesis)return;
+  // Mevcut konuşmayı durdur
+  window.speechSynthesis.cancel();
+  const utt=new SpeechSynthesisUtterance(text);
+  utt.lang='tr-TR';
+  utt.rate=1.0;
+  utt.pitch=1.0;
+  utt.volume=1.0;
+  window.speechSynthesis.speak(utt);
+}
+
+// Sesli uyarı - önce MP3 dene, yoksa TTS kullan
+function playAudioOrSpeak(key, fallbackText){
+  if(AM[key]){
+    playAudio(key);
+  }else if(fallbackText){
+    speakTR(fallbackText);
+  }
+}
+
 function showAlertBox(boxId,distId,txt){
   const box=document.getElementById(boxId);const dt=document.getElementById(distId);
   if(!box)return;if(dt)dt.textContent=txt;
